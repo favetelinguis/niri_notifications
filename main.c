@@ -105,7 +105,12 @@ int process_line(char *line, program_state_t *ps) {
       cJSON *name = NULL;
       cJSON_ArrayForEach(name, names) {
         if (cJSON_IsString(name)) {
-          ps->layouts[ps->n] = strdup(name->valuestring);
+          char *layout = strdup(name->valuestring);
+          if (!layout) {
+            res = -1;
+            goto cleanup;
+          }
+          ps->layouts[ps->n] = layout;
           ps->n++;
         }
       }
@@ -120,7 +125,8 @@ int process_line(char *line, program_state_t *ps) {
     }
     cJSON *idx = cJSON_GetObjectItemCaseSensitive(obj, "idx");
     if (cJSON_IsNumber(idx)) {
-      if (ps->current_idx != idx->valueint) {
+      int new_idx = idx->valueint;
+      if (new_idx >= 0 && new_idx < ps->n && ps->current_idx != new_idx) {
         ps->current_idx = idx->valueint;
         res = send_notification(ps->layouts[ps->current_idx]);
         if (res < 0) {
@@ -130,10 +136,10 @@ int process_line(char *line, program_state_t *ps) {
       }
     }
     break;
+  }
   default:
     fprintf(stderr, "Unknown state\n");
     break;
-  }
   }
 cleanup:
   cJSON_Delete(root);
@@ -141,25 +147,35 @@ cleanup:
 }
 
 int read_socket(int sock) {
-  program_state_t ps;
+  int res = 0;
+  program_state_t ps = {0};
   ps.s = STATE_WAITING;
   ps.n = 0;
 
   line_buffer_t lb = {0};
   lb.capacity = 4096;
   lb.buf = malloc(lb.capacity);
+  if (!lb.buf) {
+    perror("malloc");
+    res = -1;
+    goto cleanup;
+  }
 
   char temp[4096];
   ssize_t n;
-
-  int res = 0;
 
   while ((n = read(sock, temp, sizeof(temp))) > 0) {
     for (ssize_t i = 0; i < n; i++) {
       // Grow buffer if needed
       if (lb.len + 1 >= lb.capacity) {
         lb.capacity *= 2;
-        lb.buf = realloc(lb.buf, lb.capacity);
+        char *new_buf = realloc(lb.buf, lb.capacity);
+        if (!new_buf) {
+          perror("realloc");
+          res = -1;
+          goto cleanup;
+        }
+        lb.buf = new_buf;
       }
       lb.buf[lb.len++] = temp[i];
 
