@@ -22,47 +22,6 @@ typedef struct {
   size_t capacity;
 } line_buffer_t;
 
-void process_response(const char *json_string) {
-  cJSON *root = cJSON_Parse(json_string);
-  if (!root) {
-    fprintf(stderr, "Invalid JSON format\n");
-    return;
-  }
-
-  // 1. Check for "Err" first
-  cJSON *err_obj = cJSON_GetObjectItemCaseSensitive(root, "Err");
-  if (err_obj != NULL) {
-    if (cJSON_IsString(err_obj)) {
-      printf("Application Error: %s\n", err_obj->valuestring);
-    } else {
-      printf("Application Error: (Unknown error format)\n");
-    }
-    goto cleanup; // Exit early but free memory
-  }
-
-  // 2. Check for "Ok"
-  cJSON *ok_obj = cJSON_GetObjectItemCaseSensitive(root, "Ok");
-  if (ok_obj == NULL) {
-    fprintf(stderr, "Unexpected JSON structure: Missing 'Ok' and 'Err'\n");
-    goto cleanup;
-  }
-
-  // 3. Process the "Ok" payload
-  cJSON *layouts = cJSON_GetObjectItemCaseSensitive(ok_obj, "KeyboardLayouts");
-  cJSON *names = cJSON_GetObjectItemCaseSensitive(layouts, "names");
-
-  if (cJSON_IsArray(names)) {
-    cJSON *name = NULL;
-    cJSON_ArrayForEach(name, names) {
-      if (cJSON_IsString(name))
-        printf("Layout: %s\n", name->valuestring);
-    }
-  }
-
-cleanup:
-  cJSON_Delete(root);
-}
-
 int send_notification(char *message) {
   sd_bus_error error = SD_BUS_ERROR_NULL;
   sd_bus_message *reply = NULL;
