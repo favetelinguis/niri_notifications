@@ -9,8 +9,7 @@ CFLAGS := $(shell pkg-config --cflags libsystemd)
 LDFLAGS := $(shell pkg-config --libs libsystemd)
 
 # Build type specific flags
-DEBUG_FLAGS := -g -O0 -DDEBUG
-DEV_FLAGS := -g -O0 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+DEBUG_FLAGS := -g -O0 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -DDEBUG
 RELEASE_FLAGS := -O2 -DNDEBUG
 
 # Installation paths
@@ -19,7 +18,7 @@ BINDIR := $(PREFIX)/bin
 
 # Default target
 .PHONY: all
-all: release
+all: debug
 
 # Release build
 .PHONY: release
@@ -29,13 +28,8 @@ release: $(TARGET)
 # Debug build
 .PHONY: debug
 debug: CFLAGS += $(DEBUG_FLAGS)
+debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
 debug: clean $(TARGET)
-
-# Dev build with sanitizers
-.PHONY: dev
-dev: CFLAGS += $(DEV_FLAGS)
-dev: LDFLAGS += -fsanitize=address -fsanitize=undefined
-dev: clean $(TARGET)
 
 # Link the target
 $(TARGET): $(OBJECTS)
@@ -68,7 +62,6 @@ help:
 	@echo "  all (default) - Build release version"
 	@echo "  release       - Build optimized release version"
 	@echo "  debug         - Build with debug symbols"
-	@echo "  dev           - Build with address sanitizer and debug symbols"
 	@echo "  install       - Install binary to $(BINDIR)"
 	@echo "  uninstall     - Remove installed binary"
 	@echo "  clean         - Remove build artifacts"
