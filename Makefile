@@ -23,6 +23,7 @@ all: debug
 # Release build
 .PHONY: release
 release: CFLAGS += $(RELEASE_FLAGS)
+release: clean $(TARGET)
 release: $(TARGET)
 
 # Debug build
