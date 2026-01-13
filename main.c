@@ -38,7 +38,7 @@ typedef struct {
   size_t capacity;
 } line_buffer_t;
 
-void send_notification(char *message) {
+static void send_notification(char *message) {
   if (message == NULL) {
     DO_LOG_ERROR("Message can not be NULL");
     return;
@@ -78,7 +78,7 @@ finish:
   return;
 }
 
-void process_line(char *line, program_state_t *ps) {
+static void process_line(char *line, program_state_t *ps) {
   cJSON *root;
   if (!(root = cJSON_Parse(line))) {
     DO_LOG_ERROR("Invalid JSON format: %s", line);
@@ -155,7 +155,7 @@ cleanup:
   return;
 }
 
-int read_socket(int sock) {
+static int read_socket(int sock) {
   int res = -1;
   program_state_t ps = {0};
   ps.s = STATE_WAITING;
